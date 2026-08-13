@@ -1,0 +1,52 @@
+
+name: AZAL bilet yoxlamasi
+ 
+on:
+  # Her 5 deqiqeden bir. Saatin tam basi yox, qesden 2 deqiqe surusdurulub —
+  # o vaxt GitHub-un serverleri cox yuklu olur ve isler gecikir.
+  schedule:
+    - cron: "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"
+ 
+  # Elinle isletmek ucun (kalibrasiya burdan edilir)
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: "yoxla = normal yoxlama | dump = sehife metnini goster"
+        required: true
+        default: "yoxla"
+        type: choice
+        options:
+          - yoxla
+          - dump
+ 
+# Eyni anda iki yoxlama islemesin
+concurrency:
+  group: azal-bilet
+  cancel-in-progress: false
+ 
+jobs:
+  yoxla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+ 
+    steps:
+      - name: Faylları goturur
+        uses: actions/checkout@v4
+ 
+      - name: Python qurur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+ 
+      - name: Playwright qurur
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+ 
+      - name: Yoxlayir
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MOD: ${{ github.event.inputs.mod || 'yoxla' }}
+        run: python bilet.py
+ 
